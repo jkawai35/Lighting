@@ -15,12 +15,24 @@
 
     <p id="numdot"> XXX </p>
 
+    </p>
+    Normals:
+    <button type="button" id="normalOn">Normal On</button>
+    <button type="button" id="normalOff">Normal Off</button>
+    <p>
     Camera Angle <input type="range" min="0" max="360" value="5" class="slider" id="angleSlide">
     <p>
     Arm Joint <input type="range" min="-10" max="10" value="0" class="slider" id="yellowSlide">
     <p>
     Paw <input type="range" min="-5" max="5" value="0" class="slider" id="magentaSlide">
     </p>
+    Light X: <input type="range" min="0" max="32" value="14" class="slider" id="lightX">
+    Light Y: <input type="range" min="-3" max="20" value="4" class="slider" id="lightY">
+    Light Z: <input type="range" min="0" max="32" value="16" class="slider" id="lightZ">
+  </p>
+    Light: <button type="button" id="lightOn">ON</button>
+    <button type="button" id="lightOff">OFF</button>
+  </p>
     Animation:
     <button type="button" id="yellowON">ON</button>
     <button type="button" id="yellowOFF">OFF</button>
@@ -42,5 +54,6 @@
     <script src="src/Triangle.js"></script>
     <script src="src/Cube.js"></script>
     <script src="src/Octagon.js"></script>
+    <script src="src/Sphere.js"></script>
   </body>
 </html>
