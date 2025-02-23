@@ -1,0 +1,46 @@
+<!-- Jaren Kawai -->
+<!-- jkawai@ucsc.edu -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Change a point color</title>
+  </head>
+
+  <body onload="main()">
+    <canvas id="webgl" width="400" height="400">
+    Please use a browser that supports "canvas"
+    </canvas>
+    <p>
+
+    <p id="numdot"> XXX </p>
+
+    Camera Angle <input type="range" min="0" max="360" value="5" class="slider" id="angleSlide">
+    <p>
+    Arm Joint <input type="range" min="-10" max="10" value="0" class="slider" id="yellowSlide">
+    <p>
+    Paw <input type="range" min="-5" max="5" value="0" class="slider" id="magentaSlide">
+    </p>
+    Animation:
+    <button type="button" id="yellowON">ON</button>
+    <button type="button" id="yellowOFF">OFF</button>
+    <p>
+    Extra Animation:
+    <button type="button" id="magentaON">ON</button>
+    <button type="button" id="magentaOFF">OFF</button>
+    <p>
+    <p>
+
+    <script src="lib/cuon-utils.js"></script>
+    <script src="lib/webgl-debug.js"></script>
+    <script src="lib/webgl-utils.js"></script>
+    <script src="lib/cuon-matrix.js"></script>
+    <script src="src/Circle.js"></script>
+    <script src="src/Camera.js"></script>
+    <script src="src/World.js"></script>
+    <script src="src/Point.js"></script>
+    <script src="src/Triangle.js"></script>
+    <script src="src/Cube.js"></script>
+    <script src="src/Octagon.js"></script>
+  </body>
+</html>
