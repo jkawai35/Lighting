@@ -3,8 +3,8 @@
 
 class Camera{
     constructor(){
-        this.eye = new Vector3([13,0,30]);
-        this.at = new Vector3([22,0,-100]);
+        this.eye = new Vector3([13.4,-.25,5]);
+        this.at = new Vector3([17,0,90]);
         this.up = new Vector3([0,1,0]);   
     }
 
