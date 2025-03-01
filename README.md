@@ -1,5 +1,5 @@
 # Lighting
-Lookup to see added spheres. To use the Light X slider, turn off light movement.
+Lookup to see added spheres. Use sliders to move light and change light color. Light movement, lights, and spotlight can be turned on and off with the buttons on the UI.
 
 ## Controls
 Click and drag mouse to move camera.
