@@ -4,7 +4,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Change a point color</title>
+    <title>Lighting</title>
   </head>
 
   <body onload="main()">
@@ -14,7 +14,19 @@
     <p>
 
     <p id="numdot"> XXX </p>
-
+    <p>
+      Light X: <input type="range" min="-1" max="25" value="14" class="slider" id="lightX">
+      Y: <input type="range" min="-2" max="28" value="5" class="slider" id="lightY">
+      Z: <input type="range" min="-3" max="28" value="20" class="slider" id="lightZ">
+    </p>
+    <p>
+      Color Red: <input type="range" min="0" max="255" value="255" class="slider" id="redSlide">
+      Green: <input type="range" min="0" max="255" value="255" class="slider" id="greenSlide">
+      Blue: <input type="range" min="0" max="255" value="255" class="slider" id="blueSlide">
+    </p>
+    Light Movement:
+    <button type="button" id="moveOn">ON</button>
+    <button type="button" id="moveOff">OFF</button>
     </p>
     Normals:
     <button type="button" id="normalOn">Normal On</button>

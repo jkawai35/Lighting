@@ -19,8 +19,8 @@ var VSHADER_SOURCE = `
   void main() {
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
     v_UV = a_UV;
-    //v_Normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal,1)));
-    v_Normal = a_Normal;
+    v_Normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal,1)));
+    //v_Normal = a_Normal;
     v_VertPos = u_ModelMatrix * a_Position;
   }`
 
@@ -37,6 +37,7 @@ var FSHADER_SOURCE = `
   uniform sampler2D u_Sampler3;
   uniform sampler2D u_Sampler4;
   uniform vec3 u_lightPos;
+  uniform vec3 u_lightColor;
   uniform bool u_lightOn;
   varying vec4 v_VertPos;
   uniform int u_whichTexture;
@@ -71,16 +72,14 @@ var FSHADER_SOURCE = `
     } else if (u_whichTexture == 3){
       gl_FragColor = texture2D(u_Sampler3, v_UV);
 
-    } else if (u_whichTexture == 4){
-      gl_FragColor = texture2D(u_Sampler4, v_UV);
-
-    }else {
+    } else {
       gl_FragColor = vec4(1,.2,.2,1);
 
     }
 
-    vec3 lightVector = u_lightPos -vec3(v_VertPos);
-    float r=length(lightVector);
+    vec3 lightVector = u_lightPos - vec3(v_VertPos);
+    float r = dot(lightVector, lightVector);
+
     //if (r< 4.0){
       //gl_FragColor = vec4(1,0,0,1);
     //}else if (r < 6.0){
@@ -95,10 +94,11 @@ var FSHADER_SOURCE = `
     vec3 R = reflect(-L, N);
     vec3 E = normalize(u_cameraPos - vec3(v_VertPos));
 
-    float specular = pow(max(dot(E,R), 0.0), 90.0) * 0.5;
+    float specular = pow(max(dot(E,R), 0.0), 10.0) * 0.5;
+    vec3 specularHighlight = u_lightColor * specular;
 
-    vec3 diffuse = vec3(gl_FragColor) * nDotL * 0.7;
-    vec3 ambient = vec3(gl_FragColor) * 0.2;
+    vec3 diffuse = u_lightColor * vec3(gl_FragColor) * nDotL * 0.7;
+    vec3 ambient = u_lightColor * vec3(gl_FragColor) * 0.2;
 
     
     vec3 L_spotlight = normalize(u_spotlightPos - vec3(v_VertPos));
@@ -112,7 +112,6 @@ var FSHADER_SOURCE = `
 
     // Spotlight diffuse and specular contribution
     vec3 spotlightDiffuse = spotFactor * u_spotlightColor * vec3(gl_FragColor) * max(dot(N, L_spotlight), 0.0);
-    vec3 R_spotlight = reflect(-L_spotlight, N);
 
     if (u_lightOn || u_spotlightOn){
       vec3 finalColor = vec3(0.0);
@@ -123,7 +122,7 @@ var FSHADER_SOURCE = `
         finalColor += spotlightDiffuse;
       }
       if (u_whichTexture == -2){
-        gl_FragColor = vec4(specular+finalColor, 1.0);
+        gl_FragColor = vec4(specularHighlight+finalColor, 1.0);
         if (u_spotlightOn && !u_lightOn){
           gl_FragColor = vec4(finalColor, 1.0);
         }
@@ -161,8 +160,10 @@ let u_spotlightDir;
 let u_spotlightExponent;
 let u_spotlightOn;
 let u_spotlightPos;
+let u_lightColor;
 let g_mouseX = 0;
 let g_mouseY = 0;
+let g_lightColor = [1,1,1,1]
 
 
 
@@ -250,13 +251,13 @@ function connectVariablesToGLSL(){
     return;
   }
 
-  /*
+  
   u_NormalMatrix  = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   if (!u_NormalMatrix){
     console.log('Failed to get the storage location of u_normalMatrix');
     return;
   }
-  */
+  
 
   u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
   if (!u_Sampler0){
@@ -282,11 +283,13 @@ function connectVariablesToGLSL(){
     return false;
   }
 
+  /*
   u_Sampler4 = gl.getUniformLocation(gl.program, 'u_Sampler4');
   if (!u_Sampler4){
     console.log('Failed to get the storage location of u_Sampler4');
     return false;
   }
+  */
   
   u_cameraPos = gl.getUniformLocation(gl.program, 'u_cameraPos');
   if (!u_cameraPos){
@@ -338,6 +341,12 @@ function connectVariablesToGLSL(){
 
   u_spotlightColor = gl.getUniformLocation(gl.program, 'u_spotlightColor');
   if (!u_spotlightColor){
+    console.log('Failed to get the storage location of u_lightOn');
+    return false;
+  }
+
+  u_lightColor = gl.getUniformLocation(gl.program, 'u_lightColor');
+  if (!u_lightColor){
     console.log('Failed to get the storage location of u_lightOn');
     return false;
   }
@@ -397,6 +406,8 @@ let g_spotlightExp = 1;
 let g_spotlightDir = [0,-1,0];
 let g_spotlightCosCutoff = .05;
 let g_spotlightColor = [4,4,4];
+let g_camMove = true;
+let g_NormMatrix = new Matrix4();
 
 g_animalMatrix.translate(-12,-3,-10);
 g_animalMatrix.rotate(180,1,0,0);
@@ -414,6 +425,21 @@ function addActionsFromUI(){
 
   document.getElementById('spotOn').onclick = function() { g_spotOn = true; };
   document.getElementById('spotOff').onclick = function() { g_spotOn = false; };
+
+  document.getElementById('moveOn').onclick = function() { g_camMove = true; };
+  document.getElementById('moveOff').onclick = function() { g_camMove = false; };
+
+  //Slider information
+  document.getElementById('lightX').addEventListener('mousemove', function() { g_lightPos[0] = this.value; renderAllShapes()});
+  document.getElementById('lightY').addEventListener('mousemove', function() { g_lightPos[1] = this.value; renderAllShapes()});
+  document.getElementById('lightZ').addEventListener('mousemove', function() { g_lightPos[2] = this.value; renderAllShapes()});
+
+  document.getElementById('redSlide').addEventListener('mousemove', function() { g_lightColor[0] = this.value/255; renderAllShapes()});
+  document.getElementById('greenSlide').addEventListener('mousemove', function() { g_lightColor[1] = this.value/255; renderAllShapes()});
+  document.getElementById('blueSlide').addEventListener('mousemove', function() { g_lightColor[2] = this.value/255; renderAllShapes()});
+
+
+
 }
 
 function initTextures(){
@@ -693,17 +719,9 @@ function tick() {
 }
 
 function updateAnimationAngles(){
-  if (g_yellowAnimation){
-    g_yellowAngle = (15*Math.sin(g_seconds));
-    g_bodyAngle = (5*Math.sin(g_seconds));
+  if (g_camMove){
+    g_lightPos[0] = 14 + (10* Math.cos(g_seconds));
   }
-  if (g_extraAnimation){
-    g_pawAngle = (10*Math.sin(g_seconds));
-    g_tailAngle = (15*Math.sin(g_seconds));
-    g_animalSpin = (5*(g_seconds));
-  }
-
-  g_lightPos[0] = 14 + (10* Math.cos(g_seconds));
 }
 
 
@@ -844,7 +862,7 @@ function renderAllShapes(){
   gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
 
   //var normMat = new Matrix4();
-  //gl.uniformMatrix4fv(u_NormalMatrix, false, normMat.elements);
+  gl.uniformMatrix4fv(u_NormalMatrix, false, g_NormMatrix.elements);
 
 
   // Clear <canvas>
@@ -859,6 +877,9 @@ function renderAllShapes(){
   gl.uniform1f(u_spotlightExponent, g_spotlightExp);
   gl.uniform1f(u_spotlightCosineCutoff, g_spotlightCosCutoff);
   gl.uniform3fv(u_spotlightColor, g_spotlightColor);
+
+  gl.uniform3f(u_lightColor, g_lightColor[0], g_lightColor[1], g_lightColor[2]);
+  
 
 
   var light = new Cube();
@@ -898,10 +919,7 @@ function renderAllShapes(){
   moon2.render();
 
 
-  drawMap();
-
-  //.setInverseOf(matrix).transpose();
-  
+  drawMap();  
   
   //14-11
   var body = new Cube();
@@ -923,7 +941,7 @@ function renderAllShapes(){
   body2.matrix.translate(14, 1, 14);
   body2.matrix.scale(.6, 1, .6);
   body2.matrix.rotate(10,0,0,1);
-  body2.renderfast2();
+  body2.renderNormal();
 
   var arml2 = new Cube();
   arml2.matrix = new Matrix4(g_animalMatrix);
@@ -933,7 +951,7 @@ function renderAllShapes(){
   arml2.matrix.translate(14, 1.5, 14.5);
   arml2.matrix.scale(1, .4, .5);
   arml2.matrix.rotate(-10,0,0,1);
-  arml2.renderfast2();
+  arml2.renderNormal();
 
   var armr2 = new Cube();
   armr2.matrix = new Matrix4(g_animalMatrix);
@@ -943,7 +961,7 @@ function renderAllShapes(){
   armr2.matrix.translate(13, 1.5, 13.5);
   armr2.matrix.scale(1, .4, .5);
   armr2.matrix.rotate(-10,0,0,1);
-  armr2.renderfast2();
+  armr2.renderNormal();
 
   var legl2 = new Cube();
   legl2.matrix = new Matrix4(g_animalMatrix);
@@ -953,7 +971,7 @@ function renderAllShapes(){
   legl2.matrix.translate(14, 1, 13.7);
   legl2.matrix.scale(1.5, .4, .4);
   legl2.matrix.rotate(-20,0,0,1);
-  legl2.renderfast2();
+  legl2.renderNormal();
 
   var legr2 = new Cube();
   legr2.matrix = new Matrix4(g_animalMatrix);
@@ -963,7 +981,7 @@ function renderAllShapes(){
   legr2.matrix.translate(12.9, 1, 14.4);
   legr2.matrix.scale(1.5, .4, .4);
   legr2.matrix.rotate(-20,0,0,1);
-  legr2.renderfast2();
+  legr2.renderNormal();
   
   var head2 = new Cube();
   head2.matrix = new Matrix4(g_animalMatrix);
@@ -973,7 +991,7 @@ function renderAllShapes(){
   head2.matrix.translate(13.9, 2, 14);
   head2.matrix.scale(.6, .5, .6);
   head2.matrix.rotate(10,0,0,1);
-  head2.renderfast2();
+  head2.renderNormal();
 
   var head = new Cube();
   head.matrix = new Matrix4(g_animalMatrix);
@@ -983,7 +1001,7 @@ function renderAllShapes(){
   head.matrix.translate(11.1, 2, 14);
   head.matrix.scale(.6, .5, .6);
   head.matrix.rotate(-10,0,0,1);
-  head.renderfast2();
+  head.renderNormal();
 
   var arml = new Cube();
   arml.matrix = new Matrix4(g_animalMatrix);
@@ -994,7 +1012,7 @@ function renderAllShapes(){
   arml.matrix.scale(1, .4, .5);
   arml.matrix.rotate(-10,0,0,1);
   armMat = arml.matrix;
-  arml.renderfast2();
+  arml.renderNormal();
 
   var armr = new Cube();
   armr.matrix = new Matrix4(g_animalMatrix);
@@ -1004,7 +1022,7 @@ function renderAllShapes(){
   armr.matrix.translate(10.5, 1.5, 13.5);
   armr.matrix.scale(1, .4, .5);
   armr.matrix.rotate(-10,0,0,1);
-  armr.renderfast2();
+  armr.renderNormal();
 
   var saber = new Cube();
   saber.matrix = new Matrix4(armMat);
@@ -1014,8 +1032,7 @@ function renderAllShapes(){
   saber.matrix.translate(.8, 4, .2);
   saber.matrix.scale(-.2, 3, .5);
   saber.matrix.rotate(-93,0,0,1);
-  //body.matrix.rotate( g_bodyAngle, 0, 0, 1);
-  saber.renderfast2();
+  saber.renderNormal();
 
   var saber2 = new Cube();
   saber2.matrix = new Matrix4(armMat);
@@ -1025,7 +1042,7 @@ function renderAllShapes(){
   saber2.matrix.translate(2.2, 4, -1.6);
   saber2.matrix.scale(-.2, 3, .5);
   saber2.matrix.rotate(-87,0,0,1);
-  saber2.renderfast2();
+  saber2.renderNormal();
   
   
   var legr = new Cube();
@@ -1037,7 +1054,7 @@ function renderAllShapes(){
   legr.matrix.translate(.2,0,0);
   legr.matrix.rotate(-10,0,0,1);
   legMat = new Matrix4(legr.matrix);
-  legr.render();
+  legr.renderNormal();
 
   var legl = new Cube();
   legl.color = [.1, 0.1, 0.1, 1.0];
@@ -1046,7 +1063,7 @@ function renderAllShapes(){
   if (normalON) legl.textureNum = -3;
   legl.matrix.translate(-1,0,.7);
   legl.matrix.rotate(-50,0,0,1);
-  legl.render();
+  legl.renderNormal();
   
 
   var duration = performance.now() - startTime;
